@@ -3,34 +3,23 @@
   "name": "flashsalebackend",
   "main": "src/index.ts",
   "compatibility_date": "2026-02-21",
-  "compatibility_flags": ["nodejs_compat"]
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // },
-  // "observability": {
-  //   "enabled": true,
-  //   "head_sampling_rate": 1
-  // }
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {},
+  "queues": {
+    "producers": [
+      // Bindings allow your routes to push messages to these queues
+      { "binding": "FLASH_ORDERS", "queue": "flash-orders" },
+      { "binding": "PAYMENT_TIMEOUT", "queue": "payment-timeout" }
+    ],
+    "consumers": [
+      // The worker will automatically consume messages from these queues
+      {
+        "queue": "flash-orders",
+        "max_retries": 3,
+        "dead_letter_queue": "flash-dlq" // Automatically moves to DLQ on 4th failure
+      },
+      { "queue": "payment-timeout" },
+      { "queue": "flash-dlq" }
+    ]
+  }
 }
