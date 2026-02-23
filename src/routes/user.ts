@@ -8,7 +8,7 @@ import { hashPassword } from "../utils/auth";
 import type { Bindings } from "../utils/type";
 
 // Create the router
-const userRouter = new Hono<{ Bindings: Bindings }>();
+export const userRouter = new Hono<{ Bindings: Bindings }>();
 
 userRouter.post("/signup", async (c) => {
   const body = await c.req.json();
@@ -47,5 +47,3 @@ userRouter.post("/signup", async (c) => {
     return c.json({ msg: "Error creating user" });
   }
 });
-
-export default userRouter;

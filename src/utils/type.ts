@@ -1,3 +1,16 @@
+import { z } from "zod";
+
+export type ProductAttributes = Record<string, unknown>;
+
+// Main Product Input Schema for req.body validation
+export const CreateProductSchema = z.object({
+  name: z.string().min(1),
+  type: z.string().min(1),
+  isFlashSale: z.boolean().default(false),
+  stock: z.number().int().min(0),
+  attributes: z.record(z.string(), z.unknown()),
+});
+
 export type Bindings = {
   DATABASE_URL: string;
   JWT_SECRET: string;
