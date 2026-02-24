@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { ProductAttributes } from "../utils/type";
 
 export const users = pgTable("user", {
@@ -23,7 +24,8 @@ export const products = pgTable("products", {
   name: varchar("name", { length: 255 }).notNull(),
   type: varchar("type", { length: 50 }).notNull(), // A discriminator (e.g., 'sneaker', 'ticket')
   isFlashSale: boolean("is_flash_sale").default(false).notNull(),
-  stock: integer("stock").notNull().default(0),
+  allocatedStock: integer("allocated_stock").notNull().default(0),
+  availableStock: integer("available_stock").notNull().default(0),
   attributes: jsonb("attributes").$type<ProductAttributes>(),
   createdAt: timestamp("created_at").defaultNow(),
 });

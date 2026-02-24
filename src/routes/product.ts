@@ -36,19 +36,48 @@ productRouter.post("/checkout/:id", authMiddleware, async (c) => {
     token: c.env.UPSTASH_REDIS_REST_TOKEN,
   });
 
-  try {
-    const isFlashSale = await redis.get(`product:${productId}:is_flash`);
+  let isFlashSale;
 
+  // ==========================================
+  // DISASTER RECOVERY: CIRCUIT BREAKER
+  // ==========================================
+
+  try {
+    // If Upstash is unreachable, this will throw an error.
+    isFlashSale = await redis.get(`product:${productId}:is_flash`);
+  } catch (redisError) {
+    console.error("🔴 CIRCUIT BREAKER OPEN: Redis is down!", redisError);
+    // Fail Fast. Do NOT query Postgres.
+    c.status(503);
+    return c.json({
+      msg: "Service Temporarily Unavailable. We are experiencing unprecedented traffic.",
+    });
+  }
+
+  try {
     // ==========================================
     //  THE FLASH SALE CHECKOUT (Redis Lua)
     // ==========================================
-    if (isFlashSale === "true") {
+    if (isFlashSale === true) {
       const inventoryKey = `inventory:${productId}:stock`;
-      const result = await redis.eval(
-        CLAIM_INVENTORY_SCRIPT,
-        [inventoryKey],
-        ["1"]
-      );
+
+      // We also wrap the Lua script in the circuit breaker mentality
+      let result;
+
+      try {
+        result = await redis.eval(
+          CLAIM_INVENTORY_SCRIPT,
+          [inventoryKey],
+          ["1"]
+        );
+      } catch (scriptError) {
+        console.error(
+          "CIRCUIT BREAKER OPEN: Redis script failed!",
+          scriptError
+        );
+        c.status(503);
+        return c.json({ msg: "Checkout currently unavailable. Please hold." });
+      }
 
       if (result === 1) {
         // Push to the Main Queue (flash-orders)
@@ -76,53 +105,41 @@ productRouter.post("/checkout/:id", authMiddleware, async (c) => {
     //  NORMAL PRODUCT CHECKOUT (Atomic DB Transact)
     // ==========================================
 
-    // wrap everything in a transaction to ensure atomicity
-    const result = await db.transaction(async (tx) => {
-      // Atomic Stock Deduction
-      const updatedRows = await tx
-        .update(products)
-        .set({
-          stock: sql`${products.stock} - 1`,
-        })
-        .where(
-          and(
-            eq(products.id, productId),
-            gt(products.stock, 0) // Ensures we never go below zero
-          )
-        )
-        .returning();
+    // We use raw SQL to write a "WITH" clause (CTE)
+    const query = sql`
+      WITH updated_product AS (
+        -- Step 1: Try to deduct the stock
+        UPDATE products
+        SET available_stock = available_stock - 1
+        WHERE id = ${productId} AND available_stock > 0
+        RETURNING id
+      )
+      -- Step 2: If Step 1 succeeded, insert the order
+      INSERT INTO orders (user_id, product_id, status)
+      SELECT ${userId}, id, 'CONFIRMED'
+      FROM updated_product
+      RETURNING id;
+    `;
 
-      if (updatedRows.length === 0) {
-        tx.rollback(); // Stop the transaction here
-        return null;
-      }
+    // Execute the single, atomic command over standard HTTP
+    const result = await db.execute(query);
 
-      // Create the Order
-      const [newOrder] = await tx
-        .insert(orders)
-        .values({
-          userId: userId,
-          productId: productId,
-          status: "CONFIRMED",
-        })
-        .returning();
-
-      return newOrder;
-    });
-
-    if (!result) {
+    // If no rows were affected, it means the WHERE stock > 0 failed
+    if (result.rowCount === 0) {
       return c.json({ msg: "Product out of stock or not found" }, 400);
     }
 
+    // Success!
     return c.json(
       {
         msg: "Checkout successful",
-        orderId: result.id,
+        // Drizzle returns raw execution results in the 'rows' array
+        orderId: result.rows[0].id,
       },
       200
     );
   } catch (error) {
-    console.error("Checkout Error:", error);
+    console.error("Checkout failed:", error);
     return c.json({ msg: "Internal Server Error" }, 500);
   }
 });

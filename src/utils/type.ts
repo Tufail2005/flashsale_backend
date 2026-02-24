@@ -7,7 +7,7 @@ export const CreateProductSchema = z.object({
   name: z.string().min(1),
   type: z.string().min(1),
   isFlashSale: z.boolean().default(false),
-  stock: z.number().int().min(0),
+  allocatedStock: z.number().int().min(1),
   attributes: z.record(z.string(), z.unknown()),
 });
 
