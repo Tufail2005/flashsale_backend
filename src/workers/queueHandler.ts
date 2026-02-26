@@ -11,8 +11,8 @@ export async function queueHandler(
   batch: MessageBatch<OrderMessage>,
   env: Bindings
 ): Promise<void> {
-  const neonClient = neon(env.DATABASE_URL);
-  const db = drizzle(neonClient);
+  const dbSql = neon(env.DATABASE_URL);
+  const db = drizzle(dbSql);
   const redis = new Redis({
     url: env.UPSTASH_REDIS_REST_URL,
     token: env.UPSTASH_REDIS_REST_TOKEN,
@@ -87,6 +87,8 @@ export async function queueHandler(
 
         // Prevent the "ghost order" where inventory is locked in a void
         await redis.incr(`inventory:${message.body.productId}:stock`);
+
+        await redis.incr("telemetry:dlq_rescues");
 
         message.ack();
       }
