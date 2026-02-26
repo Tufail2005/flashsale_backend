@@ -12,9 +12,27 @@ import { queueHandler } from "./workers/queueHandler"; // <-- Import queue consu
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-app.use("/api/*", cors());
+app.use(
+  "/api/*",
+  cors({
+    origin: [
+      "https://eradev.xyz", // for Vercel
+      "https://www.eradev.xyz", // for Vercel www subdomain
+      "http://localhost:3000", // Next.js / React default local port
+      "http://localhost:5173", // Vite default local port
+    ],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  })
+);
 
 // Basic Route to check health
+app.get("/api/health", (c) =>
+  c.json({ status: "ok", message: "API is running" })
+);
 
 app.route("/api/v1/user", userRouter);
 app.route("api/v1/admin", adminRouter);
