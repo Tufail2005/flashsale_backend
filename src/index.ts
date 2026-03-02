@@ -16,10 +16,11 @@ app.use(
   "/api/*",
   cors({
     origin: [
-      "https://eradev.xyz", // for Vercel
-      "https://www.eradev.xyz", // for Vercel www subdomain
-      "http://localhost:3000", // Next.js / React default local port
-      "http://localhost:5173", // Vite default local port
+      "https://flashsale.eradev.xyz",
+      "https://eradev.xyz",
+      "https://www.eradev.xyz",
+      "http://localhost:3000",
+      "http://localhost:5173",
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],

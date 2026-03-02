@@ -4,7 +4,7 @@ import fs from "fs";
 
 // ⚠️ IMPORTANT: This MUST match the JWT_SECRET in your wrangler.toml
 const JWT_SECRET = "jwt_myKey";
-const TOTAL_USERS = 10;
+const TOTAL_USERS = 10000;
 
 const users = [];
 
