@@ -16,6 +16,7 @@ export type Bindings = {
   JWT_SECRET: string;
   UPSTASH_REDIS_REST_URL: string;
   UPSTASH_REDIS_REST_TOKEN: string;
+  AXIOM_TOKEN: string;
   FLASH_ORDERS: Queue<OrderMessage>;
   PAYMENT_TIMEOUT: Queue<OrderMessage>;
 };

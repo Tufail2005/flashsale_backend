@@ -13,9 +13,9 @@ export const options = {
     flash_sale_spike: {
       executor: "shared-iterations",
       //  burn rate
-      vus: 100,
+      vus: 200,
       iterations: 10000,
-      maxDuration: "3m", // Give it plenty of time
+      maxDuration: "2m", // Give it plenty of time
     },
   },
 };
@@ -25,7 +25,7 @@ export default function () {
   const user = users[userIndex];
 
   const url =
-    "https://flashsalebackend.gudduahmedansari786.workers.dev/api/v1/product/checkout/12";
+    "https://flashsalebackend.gudduahmedansari786.workers.dev/api/v1/product/checkout/13";
 
   const params = {
     headers: {
